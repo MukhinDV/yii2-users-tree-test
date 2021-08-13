@@ -2,73 +2,138 @@
 
 namespace app\models;
 
-class User extends \yii\base\BaseObject implements \yii\web\IdentityInterface
-{
-    public $id;
-    public $username;
-    public $password;
-    public $authKey;
-    public $accessToken;
+use yii\behaviors\TimestampBehavior;
+use yii\web\IdentityInterface;
+use Yii;
 
-    private static $users = [
-        '100' => [
-            'id' => '100',
-            'username' => 'admin',
-            'password' => 'admin',
-            'authKey' => 'test100key',
-            'accessToken' => '100-token',
-        ],
-        '101' => [
-            'id' => '101',
-            'username' => 'demo',
-            'password' => 'demo',
-            'authKey' => 'test101key',
-            'accessToken' => '101-token',
-        ],
-    ];
+/**
+ * This is the model class for table "user".
+ *
+ * @property int $id
+ * @property string $email E-mail
+ * @property string $password Пароль
+ * @property string $partner_id Партнер id
+ * @property int $created_at Дата создания
+ * @property int|null $updated_at Дата обновления
+ */
+class User extends \yii\db\ActiveRecord implements IdentityInterface
+{
+    /**
+     * @var string
+     */
+    public ?string $parent_partner_id = null;
+
+    const SCENARIO_REGISTER = 'register';
 
 
     /**
      * {@inheritdoc}
+     */
+    public static function tableName()
+    {
+        return 'user';
+    }
+
+    /** {@inheritdoc} */
+    public function behaviors()
+    {
+        return [
+            TimestampBehavior::class,
+        ];
+    }
+
+
+    /**
+     * {@inheritdoc}
+     */
+    public function rules()
+    {
+        return [
+            [['email'], 'required', 'on' => self::SCENARIO_REGISTER],
+            [['email', 'password'], 'required'],
+            [['created_at', 'updated_at'], 'integer'],
+            [['email', 'password', 'partner_id'], 'string', 'max' => 255],
+            [['email'], 'unique'],
+            [['email'], 'email'],
+            ['parent_partner_id', 'checkPartnerId'],
+            [['partner_id'], 'unique'],
+        ];
+    }
+
+    /**
+     * validation rule
+     *
+     * @return bool
+     */
+    public function checkPartnerId()
+    {
+        if ($this::findOne(['partner_id' => $this->parent_partner_id])) {
+            return true;
+        }
+
+        $this->addError('parent_partner_id', 'Такого уникального номера нет');
+    }
+
+    /**
+     * {@inheritdoc}
+     */
+    public function attributeLabels()
+    {
+        return [
+            'id' => 'ID',
+            'email' => 'E-mail',
+            'password' => 'Пароль',
+            'partner_id' => 'Партнер id',
+            'parent_partner_id' => 'Партнер id',
+            'created_at' => 'Дата создания',
+            'updated_at' => 'Дата обновления',
+        ];
+    }
+
+    /**
+     * @param bool $insert
+     *
+     * @return bool
+     *
+     * @throws \yii\base\Exception
+     */
+    public function beforeSave($insert)
+    {
+        if ($this->isNewRecord) {
+            $this->partner_id = Yii::$app->getSecurity()->generateRandomString(10);
+            $this->password = Yii::$app->getSecurity()->generatePasswordHash($this->password);
+        }
+
+        return parent::beforeSave($insert);
+    }
+
+    /**
+     * @return mixed
+     */
+    public function getUserName()
+    {
+        return $this->email;
+    }
+
+    /**
+     * Finds an identity by the given ID.
+     *
+     * @param string|int $id the ID to be looked for
+     *
+     * @return IdentityInterface|null the identity object that matches the given ID.
+     *
+     * Null should be returned if such an identity cannot be found
+     * or the identity is not in an active state (disabled, deleted, etc.)
      */
     public static function findIdentity($id)
     {
-        return isset(self::$users[$id]) ? new static(self::$users[$id]) : null;
+        return User::find()->andWhere(['id' => $id])->one();
     }
 
     /**
-     * {@inheritdoc}
-     */
-    public static function findIdentityByAccessToken($token, $type = null)
-    {
-        foreach (self::$users as $user) {
-            if ($user['accessToken'] === $token) {
-                return new static($user);
-            }
-        }
-
-        return null;
-    }
-
-    /**
-     * Finds user by username
+     * Returns an ID that can uniquely identify a user identity.
      *
-     * @param string $username
-     * @return static|null
-     */
-    public static function findByUsername($username)
-    {
-        foreach (self::$users as $user) {
-            if (strcasecmp($user['username'], $username) === 0) {
-                return new static($user);
-            }
-        }
-
-        return null;
-    }
-
-    /**
-     * {@inheritdoc}
+     * @return string|int an ID that uniquely identifies a user identity.
      */
     public function getId()
     {
@@ -76,29 +141,31 @@ class User extends \yii\base\BaseObject implements \yii\web\IdentityInterface
     }
 
     /**
-     * {@inheritdoc}
+     * @param mixed $token
+     * @param null $type
+     *
+     * @return void|IdentityInterface|null
+     */
+    public static function findIdentityByAccessToken($token, $type = null)
+    {
+        // TODO: Implement findIdentityByAccessToken() method.
+    }
+
+    /**
+     * @return string|void|null
      */
     public function getAuthKey()
     {
-        return $this->authKey;
+        // TODO: Implement getAuthKey() method.
     }
 
     /**
-     * {@inheritdoc}
+     * @param string $authKey
+     *
+     * @return bool|void|null
      */
     public function validateAuthKey($authKey)
     {
-        return $this->authKey === $authKey;
-    }
-
-    /**
-     * Validates password
-     *
-     * @param string $password password to validate
-     * @return bool if password provided is valid for current user
-     */
-    public function validatePassword($password)
-    {
-        return $this->password === $password;
+        // TODO: Implement validateAuthKey() method.
     }
 }

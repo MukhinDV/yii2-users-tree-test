@@ -2,13 +2,11 @@
 
 namespace app\controllers;
 
+use app\components\UserComponent;
+use app\models\User;
+use yii\filters\{VerbFilter, AccessControl};
+use yii\web\{Response, Controller};
 use Yii;
-use yii\filters\AccessControl;
-use yii\web\Controller;
-use yii\web\Response;
-use yii\filters\VerbFilter;
-use app\models\LoginForm;
-use app\models\ContactForm;
 
 class SiteController extends Controller
 {
@@ -30,7 +28,7 @@ class SiteController extends Controller
                 ],
             ],
             'verbs' => [
-                'class' => VerbFilter::className(),
+                'class' => VerbFilter::class,
                 'actions' => [
                     'logout' => ['post'],
                 ],
@@ -71,17 +69,47 @@ class SiteController extends Controller
      */
     public function actionLogin()
     {
-        if (!Yii::$app->user->isGuest) {
-            return $this->goHome();
+        $this->checkGuest();
+
+        $userHelper = new UserComponent();
+        $model = new User();
+
+        if (\Yii::$app->request->isPost) {
+            if ($model->load(\Yii::$app->request->post()) && $model->validate(['password'])) {
+
+                if ($userHelper->authUser($model->password, $model->email)) {
+                    return $this->goHome();
+                } else {
+                    $model->addError('password', 'Неправильная пара email/пароль.');
+                }
+            }
         }
 
-        $model = new LoginForm();
-        if ($model->load(Yii::$app->request->post()) && $model->login()) {
-            return $this->goBack();
-        }
-
-        $model->password = '';
         return $this->render('login', [
+            'model' => $model,
+        ]);
+    }
+
+    /**
+     * Register users
+     *
+     * @return string
+     */
+    public function actionRegister()
+    {
+        $this->checkGuest();
+        $model = new User(['scenario' => User::SCENARIO_REGISTER]);
+
+        if (\Yii::$app->request->isPost) {
+            if ($model->load(\Yii::$app->request->post()) && $model->validate(['email', 'parent_partner_id', 'password'])
+                && $model->save(false)) {
+
+                Yii::$app->session->setFlash('success', "Вы успешно зарегистрировались");
+                return $this->goHome();
+            }
+        }
+
+        return $this->render('register', [
             'model' => $model,
         ]);
     }
@@ -99,30 +127,12 @@ class SiteController extends Controller
     }
 
     /**
-     * Displays contact page.
-     *
-     * @return Response|string
+     * @return Response
      */
-    public function actionContact()
+    private function checkGuest()
     {
-        $model = new ContactForm();
-        if ($model->load(Yii::$app->request->post()) && $model->contact(Yii::$app->params['adminEmail'])) {
-            Yii::$app->session->setFlash('contactFormSubmitted');
-
-            return $this->refresh();
+        if (!Yii::$app->user->isGuest) {
+            return $this->goHome();
         }
-        return $this->render('contact', [
-            'model' => $model,
-        ]);
-    }
-
-    /**
-     * Displays about page.
-     *
-     * @return string
-     */
-    public function actionAbout()
-    {
-        return $this->render('about');
     }
 }

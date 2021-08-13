@@ -4,9 +4,10 @@ $params = require __DIR__ . '/params.php';
 $db = require __DIR__ . '/db.php';
 
 $config = [
-    'id' => 'basic',
+    'id' => 'yii2-users-tree-test',
     'basePath' => dirname(__DIR__),
     'bootstrap' => ['log'],
+    'language' => 'ru-RU',
     'aliases' => [
         '@bower' => '@vendor/bower-asset',
         '@npm' => '@vendor/npm-asset',
@@ -20,6 +21,7 @@ $config = [
             'class' => 'yii\caching\FileCache',
         ],
         'user' => [
+            'loginUrl' => ['/site/login'],
             'identityClass' => 'app\models\User',
             'enableAutoLogin' => true,
         ],
