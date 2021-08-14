@@ -3,7 +3,6 @@
 namespace app\models;
 
 use yii\behaviors\TimestampBehavior;
-use yii\db\Exception;
 use yii\web\IdentityInterface;
 use Yii;
 

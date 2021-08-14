@@ -4,7 +4,6 @@ namespace app\controllers;
 
 use app\components\UserComponent;
 use app\models\User;
-use app\models\UserTree;
 use yii\filters\{VerbFilter, AccessControl};
 use yii\web\{Response, Controller};
 use Yii;
