@@ -4,9 +4,11 @@ namespace app\controllers;
 
 use app\components\UserComponent;
 use app\models\User;
+use app\models\UserTree;
 use yii\filters\{VerbFilter, AccessControl};
 use yii\web\{Response, Controller};
 use Yii;
+use yii\db\Exception;
 
 class SiteController extends Controller
 {
@@ -101,11 +103,21 @@ class SiteController extends Controller
         $model = new User(['scenario' => User::SCENARIO_REGISTER]);
 
         if (\Yii::$app->request->isPost) {
-            if ($model->load(\Yii::$app->request->post()) && $model->validate(['email', 'parent_partner_id', 'password'])
-                && $model->save(false)) {
+            if ($model->load(\Yii::$app->request->post()) && $model->validate(['email', 'parent_partner_id', 'password'])) {
 
-                Yii::$app->session->setFlash('success', "Вы успешно зарегистрировались");
-                return $this->goHome();
+                $transaction = \Yii::$app->db->beginTransaction();
+                try {
+                    $model->save(false);
+                    $model->createNode();
+
+                    $transaction->commit();
+
+                    Yii::$app->session->setFlash('success', "Вы успешно зарегистрировались");
+                    return $this->goHome();
+                } catch (Exception $e) {
+                    $transaction->rollback();
+                    Yii::$app->session->setFlash('error', "Произошла ошибка, повторите попытку позже");
+                }
             }
         }
 

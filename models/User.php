@@ -3,6 +3,7 @@
 namespace app\models;
 
 use yii\behaviors\TimestampBehavior;
+use yii\db\Exception;
 use yii\web\IdentityInterface;
 use Yii;
 
@@ -105,6 +106,31 @@ class User extends \yii\db\ActiveRecord implements IdentityInterface
         }
 
         return parent::beforeSave($insert);
+    }
+
+    /**
+     * create userTree node
+     */
+    public function createNode()
+    {
+        $user_tree_parent = ($this::findOne(['partner_id' => $this->parent_partner_id]))->userTree;
+
+        // The tree itself will substitute the necessary values for attributes (lft/rgt/depth)
+        $user_tree = new UserTree(['user_id' => $this->id]);
+        $user_tree->lft = 1;
+        $user_tree->rgt = 2;
+        $user_tree->depth = 0;
+        $user_tree->appendTo($user_tree_parent);
+    }
+
+    /**
+     * Gets query for [[UserTree]].
+     *
+     * @return \yii\db\ActiveQuery
+     */
+    public function getUserTree()
+    {
+        return $this->hasOne(UserTree::class, ['user_id' => 'id']);
     }
 
     /**
